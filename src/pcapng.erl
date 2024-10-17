@@ -259,13 +259,13 @@ decode_spb(PacketLen, Data, _) ->
     {spb, PacketLen, Data}.
 
 decode_nrb_record(0, <<>>, <<>>, _, Acc) ->
-    lists:reverse(Acc);
+    {lists:reverse(Acc), <<>>};
 decode_nrb_record(1, <<IP:4/bytes, Names/binary>>, NextRecord, ByteOrder, Acc) ->
     Record = {ipv4, IP, binary:split(Names, <<0>>, [global, trim])},
-    decode_nrb_records(NextRecord, ByteOrder, [Record|Acc]);
+    decode_nrb_records(NextRecord, ByteOrder, [Record | Acc]);
 decode_nrb_record(2, <<IP:16/bytes, Names/binary>>, NextRecord, ByteOrder, Acc) ->
     Record = {ipv6, IP, binary:split(Names, <<0>>, [global, trim])},
-    decode_nrb_records(NextRecord, ByteOrder, [Record|Acc]);
+    decode_nrb_records(NextRecord, ByteOrder, [Record | Acc]);
 decode_nrb_record(Type, Value, NextRecord, ByteOrder, Acc) ->
     error(badarg, [Type, Value, NextRecord, ByteOrder, Acc]).
 
@@ -388,6 +388,8 @@ encode_option({comment, Value}, _Funs) ->
 encode_option(Opt, Fun) ->
     Fun(Opt).
 
+encode_options([], _Fun) ->
+    <<>>;
 encode_options(Opts, Fun) ->
     << (<< << (encode_option(Opt, Fun))/binary >> || Opt <- Opts >>)/binary,
        0:16, 0:16 >>.
@@ -464,7 +466,7 @@ encode_block({epb, InterfaceId, TStamp, PacketLen, Options, PacketData}) ->
     CaptureLen = byte_size(PacketData),
     PadLen = pad_length(4, CaptureLen),
     Length = 12 + 20 + CaptureLen + PadLen + byte_size(Opts),
-    <<2:32, Length:32, InterfaceId:32, TStamp:64, CaptureLen:32,
+    <<6:32, Length:32, InterfaceId:32, TStamp:64, CaptureLen:32,
       PacketLen:32, PacketData/binary, 0:(PadLen*8), Opts/binary, Length:32>>;
 encode_block(Block) ->
     error(badarg, [Block]).
