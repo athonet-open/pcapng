@@ -259,13 +259,13 @@ decode_spb(PacketLen, Data, _) ->
     {spb, PacketLen, Data}.
 
 decode_nrb_record(0, <<>>, <<>>, _, Acc) ->
-    lists:reverse(Acc);
+    {lists:reverse(Acc), <<>>};
 decode_nrb_record(1, <<IP:4/bytes, Names/binary>>, NextRecord, ByteOrder, Acc) ->
     Record = {ipv4, IP, binary:split(Names, <<0>>, [global, trim])},
-    decode_nrb_records(NextRecord, ByteOrder, [Record|Acc]);
+    decode_nrb_records(NextRecord, ByteOrder, [Record | Acc]);
 decode_nrb_record(2, <<IP:16/bytes, Names/binary>>, NextRecord, ByteOrder, Acc) ->
     Record = {ipv6, IP, binary:split(Names, <<0>>, [global, trim])},
-    decode_nrb_records(NextRecord, ByteOrder, [Record|Acc]);
+    decode_nrb_records(NextRecord, ByteOrder, [Record | Acc]);
 decode_nrb_record(Type, Value, NextRecord, ByteOrder, Acc) ->
     error(badarg, [Type, Value, NextRecord, ByteOrder, Acc]).
 
